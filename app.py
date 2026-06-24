@@ -1,5 +1,13 @@
 import streamlit as st
+import sqlite3
 
+connection = sqlite3.connect("records.db")
+
+cursor = connection.cursor()
+
+command1 = "CREATE TABLE IF NOT EXISTS records(record_id INTEGER PRIMARY KEY, weight FLOAT, height FLOAT, age INT, activity_level TEXT, sex TEXT, goal TEXT, bmi FLOAT, bmr FLOAT, tdee FLOAT, calories FLOAT, protein FLOAT, fat FLOAT, carbs FLOAT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+cursor.execute(command1)
+connection.commit()
 
 st.set_page_config(page_title="CalCal", page_icon=":calculator:")
 st.title("CalCal - Calculator Calories")
@@ -29,8 +37,13 @@ if units == "kg/m":
 if units == "lb/in" and weight_lb is not None and height_in is not None:
     weight = weight_lb /2.205
     height = height_in/39.37
+if "button_clicked" not in st.session_state:
+    st.session_state.button_clicked = False
+def save_report():
+    st.session_state.button_clicked = True
 if st.button("Calculate"):
     if weight and height and age and sex and activity_level and goal is not None and weight>0 and height > 0 and age >=0:
+        st.button("Save Report", on_click=save_report)
         col8, col9 = st.columns(2)
         with col8:
             st.subheader("BMI")
@@ -97,5 +110,22 @@ if st.button("Calculate"):
             elif goal == "Gain weight":
                 carbs = round((remaining_calories-(1.9 * weight))/4, 2)
                 st.write(str(carbs))
+        st.session_state.weight = weight
+        st.session_state.height = height
+        st.session_state.age = age
+        st.session_state.sex = sex
+        st.session_state.goal = goal
+        st.session_state.activity_level = activity_level
+        st.session_state.BMI = BMI
+        st.session_state.BMR = BMR
+        st.session_state.tdee = tdee
+        st.session_state.calories = calories
+        st.session_state.protein = protein
+        st.session_state.fats = fats
+        st.session_state.carbs = carbs
     else:
         st.error("Some fields are empty!")
+if st.session_state.button_clicked:
+    cursor.execute("INSERT INTO records(weight, height, age, activity_level, sex, goal, bmi, bmr, tdee, calories, protein, fat, carbs) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", (st.session_state.weight, st.session_state.height,st.session_state.age,st.session_state.activity_level,st.session_state.sex,st.session_state.goal,st.session_state.BMI,st.session_state.BMR,st.session_state.tdee,st.session_state.calories,st.session_state.protein,st.session_state.fats,st.session_state.carbs))
+    st.session_state.button_clicked = False
+    connection.commit()
